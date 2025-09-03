@@ -23,6 +23,7 @@ function ContentsTable() {
       setLoading(true);
       try {
         const result = await getIdeas(user.uid, 1, 1000);
+
         if (result && result.ideas) {
           setIdeas(result.ideas);
         } else {

@@ -102,7 +102,7 @@ export async function saveIdea(userId, ideaData) {
   return await db.ideas.add({
     ...ideaData,
     userId,
-    createdAt: new Date().toISOString(),
+    createdAt: Date.now(),
     syncStatus: "local",
   });
 }
@@ -114,18 +114,34 @@ export async function getIdeas(
   searchTerm = "",
   filters = {}
 ) {
-  // Use compound index for better performance
+  // Ensure old createdAt values are normalized
+  const allIdeas = await db.ideas.where("userId").equals(userId).toArray();
+
+  for (const idea of allIdeas) {
+    if (idea.createdAt && idea.createdAt.seconds) {
+      // Firestore-style object → convert to ms
+      await db.ideas.update(idea.id, {
+        createdAt: idea.createdAt.seconds * 1000,
+      });
+    } else if (typeof idea.createdAt === "string") {
+      // ISO string → convert to ms
+      await db.ideas.update(idea.id, {
+        createdAt: new Date(idea.createdAt).getTime(),
+      });
+    }
+  }
+
+  // Now query with compound index (safe, all numbers)
   let query = db.ideas
     .where("[userId+createdAt]")
     .between([userId, Dexie.minKey], [userId, Dexie.maxKey]);
 
-  // Add this line after the initial query
-  query = query.filter((idea) => !idea.deleted);
+  // Exclude deleted
+  query = query.filter((idea) => idea.deleted !== true);
 
-  // Optimize search by limiting searchable fields and using more efficient filtering
+  // Search
   if (searchTerm) {
     const searchLower = searchTerm.toLowerCase();
-    // Define searchable fields to avoid checking all object values
     const searchableFields = [
       "title",
       "contentIdea",
@@ -146,7 +162,7 @@ export async function getIdeas(
     );
   }
 
-  // Apply filters more efficiently
+  // Filters
   if (Object.keys(filters).length) {
     query = query.filter((idea) => {
       for (const [key, value] of Object.entries(filters)) {
@@ -156,13 +172,13 @@ export async function getIdeas(
     });
   }
 
-  // Use bulk operations for better performance
+  // Paginate + reverse order
   const [total, ideas] = await Promise.all([
     query.count(),
     query
       .offset((page - 1) * limit)
       .limit(limit)
-      .reverse() // Show newest first
+      .reverse()
       .toArray(),
   ]);
 
@@ -227,26 +243,43 @@ export async function saveDraft(userId, draftData) {
   return await db.drafts.add({
     ...draftData,
     userId,
-    createdAt: new Date().toISOString(),
+    createdAt: Date.now(), // ✅ use number
     syncStatus: "local",
   });
 }
 
 export async function getDrafts(userId, page = 1, limit = 10) {
-  // Use compound index for better query performance
+  // Normalize old createdAt formats
+  const allDrafts = await db.drafts.where("userId").equals(userId).toArray();
+
+  for (const draft of allDrafts) {
+    if (draft.createdAt && draft.createdAt.seconds) {
+      // Firestore-style object → convert
+      await db.drafts.update(draft.id, {
+        createdAt: draft.createdAt.seconds * 1000,
+      });
+    } else if (typeof draft.createdAt === "string") {
+      // ISO string → convert
+      await db.drafts.update(draft.id, {
+        createdAt: new Date(draft.createdAt).getTime(),
+      });
+    }
+  }
+
+  // Now safely use compound index
   let query = db.drafts
     .where("[userId+createdAt]")
     .between([userId, Dexie.minKey], [userId, Dexie.maxKey]);
 
-  // Add this line after the initial query
-  query = query.filter((draft) => !draft.deleted);
+  // Exclude deleted
+  query = query.filter((draft) => draft.deleted !== true);
 
   const [total, drafts] = await Promise.all([
     query.count(),
     query
       .offset((page - 1) * limit)
       .limit(limit)
-      .reverse() // Show newest first
+      .reverse() // newest first
       .toArray(),
   ]);
 
