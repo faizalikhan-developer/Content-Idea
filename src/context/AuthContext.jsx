@@ -1,6 +1,8 @@
 import { createContext, useContext, useEffect, useState } from "react";
 import {
   signInWithPopup,
+  signInWithRedirect,
+  getRedirectResult,
   GoogleAuthProvider,
   signOut,
   onAuthStateChanged,
@@ -9,7 +11,6 @@ import { useNavigate, useLocation } from "react-router-dom";
 import { auth } from "../utils/firebase";
 
 const provider = new GoogleAuthProvider();
-
 const AuthContext = createContext();
 
 export function AuthProvider({ children }) {
@@ -18,18 +19,31 @@ export function AuthProvider({ children }) {
   const navigate = useNavigate();
   const location = useLocation();
 
+  // 👇 handle redirect results (needed for mobile/PWA)
+  useEffect(() => {
+    getRedirectResult(auth)
+      .then((result) => {
+        if (result?.user) {
+          console.log("Redirect login success:", result.user);
+          setUser(result.user);
+        }
+      })
+      .catch((error) => {
+        if (error) console.error("Redirect login error:", error.message);
+      });
+  }, []);
+
+  // 👇 handle auth state changes
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
       setUser(currentUser);
       setLoading(false);
-      
+
       if (currentUser) {
-        // User is logged in, navigate to dashboard if on login page
         if (location.pathname === "/login" || location.pathname === "/") {
           navigate("/dashboard");
         }
       } else {
-        // User is not logged in, navigate to login if not already there
         if (location.pathname !== "/login") {
           navigate("/login");
         }
@@ -39,24 +53,27 @@ export function AuthProvider({ children }) {
     return () => unsubscribe();
   }, [navigate, location.pathname]);
 
+  // 👇 environment-aware login
   const login = async () => {
     try {
       setLoading(true);
-      const result = await signInWithPopup(auth, provider);
-      const user = result.user;
-      console.log("Logged in:", user);
-      // Navigation will be handled by onAuthStateChanged
+
+      const isStandalone =
+        window.matchMedia("(display-mode: standalone)").matches ||
+        window.navigator.standalone ||
+        /android/i.test(navigator.userAgent);
+
+      if (isStandalone) {
+        console.log("Using redirect login (PWA/mobile)");
+        await signInWithRedirect(auth, provider);
+      } else {
+        console.log("Using popup login (desktop)");
+        const result = await signInWithPopup(auth, provider);
+        console.log("Popup login success:", result.user);
+      }
     } catch (error) {
       console.error("Login error:", error.message);
       setLoading(false);
-      
-      // Handle specific popup errors
-      if (error.code === 'auth/popup-closed-by-user') {
-        console.log("Popup was closed by user");
-      } else if (error.code === 'auth/popup-blocked') {
-        console.log("Popup was blocked by browser");
-        // You could show a message to user about popup blockers
-      }
     }
   };
 
