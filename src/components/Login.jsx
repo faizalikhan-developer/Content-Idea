@@ -1,4 +1,5 @@
-import { useAuth } from '../context/AuthContext';
+import { useEffect } from "react";
+import { useAuth } from "../context/AuthContext";
 
 function Login() {
   const { login, loading } = useAuth();

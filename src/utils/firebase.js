@@ -1,7 +1,10 @@
+// firebase.js
+
 import { initializeApp } from "firebase/app";
-import { getAuth } from "firebase/auth";
+import { getAuth, connectAuthEmulator } from "firebase/auth";
 import {
   getFirestore,
+  connectFirestoreEmulator,
   collection,
   addDoc,
   getDocs,
@@ -28,6 +31,38 @@ export const app = initializeApp(firebaseConfig);
 export const db = getFirestore(app);
 export const auth = getAuth(app);
 
+// Configure Auth settings for better mobile/PWA support
+auth.languageCode = 'en';
+
+// Enable Auth persistence (helpful for PWAs)
+if (typeof window !== 'undefined') {
+  // Set auth persistence to LOCAL for better PWA experience
+  import('firebase/auth').then(({ setPersistence, browserLocalPersistence }) => {
+    setPersistence(auth, browserLocalPersistence).catch((error) => {
+      console.warn('Auth persistence setup failed:', error);
+    });
+  });
+}
+
+// Development emulator connection (optional)
+if (process.env.NODE_ENV === 'development' && typeof window !== 'undefined') {
+  const useEmulator = false; // Set to true if using Firebase emulators
+  
+  if (useEmulator) {
+    try {
+      // Connect to emulators only once
+      if (!auth._delegate._config.emulator) {
+        connectAuthEmulator(auth, "http://localhost:9099");
+      }
+      if (!db._delegate._databaseId.host.includes('localhost')) {
+        connectFirestoreEmulator(db, 'localhost', 8080);
+      }
+    } catch (error) {
+      console.warn('Emulator connection failed:', error);
+    }
+  }
+}
+
 export async function pushIdeas(userId, ideas) {
   const ideasCollection = collection(db, "ideas");
   const results = [];
@@ -43,7 +78,12 @@ export async function pushIdeas(userId, ideas) {
         results.push({ localId: id, cloudId: idea.cloudId, action: "deleted" });
       } else if (!idea.deleted) {
         // Handle creation: add new idea to cloud
-        const docRef = await addDoc(ideasCollection, { ...ideaData, userId });
+        const docRef = await addDoc(ideasCollection, { 
+          ...ideaData, 
+          userId,
+          createdAt: new Date(),
+          updatedAt: new Date()
+        });
         results.push({ localId: id, cloudId: docRef.id, action: "created" });
       }
       // Note: if deleted but no cloudId, it was never synced, so just ignore
@@ -73,7 +113,12 @@ export async function pushDrafts(userId, drafts) {
         });
       } else if (!draft.deleted) {
         // Handle creation: add new draft to cloud
-        const docRef = await addDoc(draftsCollection, { ...draftData, userId });
+        const docRef = await addDoc(draftsCollection, { 
+          ...draftData, 
+          userId,
+          createdAt: new Date(),
+          updatedAt: new Date()
+        });
         results.push({ localId: id, cloudId: docRef.id, action: "created" });
       }
       // Note: if deleted but no cloudId, it was never synced, so just ignore
@@ -108,10 +153,16 @@ export async function syncDrafts(userId) {
 
 export async function updateIdeaSyncStatus(cloudId, syncStatus) {
   const ideaRef = doc(db, "ideas", cloudId);
-  await updateDoc(ideaRef, { syncStatus });
+  await updateDoc(ideaRef, { 
+    syncStatus,
+    updatedAt: new Date()
+  });
 }
 
 export async function updateDraftSyncStatus(cloudId, syncStatus) {
   const draftRef = doc(db, "drafts", cloudId);
-  await updateDoc(draftRef, { syncStatus });
+  await updateDoc(draftRef, { 
+    syncStatus,
+    updatedAt: new Date()
+  });
 }
