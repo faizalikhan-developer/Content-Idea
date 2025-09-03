@@ -2,6 +2,13 @@ import { useEffect } from "react";
 import { useAuth } from "../context/AuthContext";
 
 function Login() {
+  // Add this to your Login.jsx for debugging
+  useEffect(() => {
+    console.log("Current URL:", window.location.href);
+    console.log("Current origin:", window.location.origin);
+    console.log("User agent:", navigator.userAgent);
+  }, []);
+
   const { login, loading } = useAuth();
 
   return (

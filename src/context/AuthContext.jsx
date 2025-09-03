@@ -73,63 +73,20 @@ export function AuthProvider({ children }) {
     return () => unsubscribe();
   }, [navigate, location.pathname]);
 
-  // Simplified login - always use redirect for better compatibility
+  // Simplified login - force redirect for better reliability
   const login = async () => {
     try {
       setLoading(true);
       console.log("Login attempt started");
 
-      // Check if we're in a mobile environment or popup blockers are likely
-      const isMobile = /Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-      const isStandalone = window.matchMedia("(display-mode: standalone)").matches || 
-                          window.navigator.standalone === true;
-      const isTouch = 'ontouchstart' in window;
-      const isSmallScreen = window.innerWidth <= 768;
+      // Always use redirect for better compatibility across all environments
+      console.log("Using redirect login for maximum compatibility");
+      setRedirectHandled(false);
       
-      // For better UX, default to redirect in most cases
-      const useRedirect = isMobile || isStandalone || isTouch || isSmallScreen;
-
-      console.log("Environment detection:", {
-        isMobile,
-        isStandalone,
-        isTouch,
-        isSmallScreen,
-        useRedirect,
-        userAgent: navigator.userAgent.substring(0, 100) + "..."
-      });
-
-      if (useRedirect) {
-        console.log("Using redirect login (recommended for mobile/touch devices)");
-        setRedirectHandled(false);
-        await signInWithRedirect(auth, provider);
-        // Don't set loading to false - page will redirect
-        return;
-      }
-
-      // Try popup for desktop, with immediate fallback to redirect
-      console.log("Attempting popup login for desktop");
-      try {
-        const result = await signInWithPopup(auth, provider);
-        console.log("Popup login success:", result.user);
-        setUser(result.user);
-        setLoading(false);
-      } catch (popupError) {
-        console.warn("Popup failed, using redirect fallback:", popupError.code);
-        
-        // Any popup error should fallback to redirect
-        if (popupError.code === 'auth/popup-blocked' || 
-            popupError.code === 'auth/popup-closed-by-user' ||
-            popupError.code === 'auth/cancelled-popup-request') {
-          
-          console.log("Switching to redirect method due to popup issue");
-          setRedirectHandled(false);
-          await signInWithRedirect(auth, provider);
-          return;
-        }
-        
-        // Re-throw other errors
-        throw popupError;
-      }
+      // Use the configured provider
+      await signInWithRedirect(auth, provider);
+      
+      // Don't set loading to false - page will redirect
       
     } catch (error) {
       console.error("Login error:", {
@@ -140,13 +97,19 @@ export function AuthProvider({ children }) {
       
       setLoading(false);
       
-      // Show user-friendly error message
+      // Show user-friendly error messages
       if (error.code === 'auth/network-request-failed') {
         alert('Network error. Please check your connection and try again.');
       } else if (error.code === 'auth/too-many-requests') {
         alert('Too many attempts. Please wait a moment and try again.');
+      } else if (error.code === 'auth/operation-not-allowed') {
+        alert('Google Sign-in is not enabled. Please contact support.');
+      } else if (error.code === 'auth/invalid-api-key') {
+        alert('Configuration error. Please contact support.');
+      } else if (error.code === 'auth/app-not-authorized') {
+        alert('App not authorized. Please contact support.');
       } else {
-        alert('Login failed. Please try again.');
+        alert(`Login failed: ${error.message || 'Please try again.'}`);
       }
     }
   };
