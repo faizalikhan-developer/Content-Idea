@@ -58,21 +58,23 @@ export function AuthProvider({ children }) {
     try {
       setLoading(true);
 
-      const isStandalone =
-        window.matchMedia("(display-mode: standalone)").matches ||
-        window.navigator.standalone ||
-        /android/i.test(navigator.userAgent);
+      const provider = new GoogleAuthProvider();
 
-      if (isStandalone) {
-        console.log("Using redirect login (PWA/mobile)");
+      // Check if mobile or PWA
+      const isMobile = /Mobi|Android/i.test(navigator.userAgent);
+      const isStandalone = window.matchMedia(
+        "(display-mode: standalone)"
+      ).matches;
+
+      if (isMobile || isStandalone) {
+        console.log("Using redirect login (mobile/PWA)");
         await signInWithRedirect(auth, provider);
       } else {
         console.log("Using popup login (desktop)");
-        const result = await signInWithPopup(auth, provider);
-        console.log("Popup login success:", result.user);
+        await signInWithPopup(auth, provider);
       }
     } catch (error) {
-      console.error("Login error:", error.message);
+      console.error("Login error:", error.code, error.message);
       setLoading(false);
     }
   };
