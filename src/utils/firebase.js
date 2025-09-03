@@ -15,15 +15,28 @@ import {
   deleteDoc,
 } from "firebase/firestore";
 
+// Add validation after firebaseConfig
+const requiredEnvVars = [
+  "VITE_FIREBASE_API_KEY",
+  "VITE_FIREBASE_AUTH_DOMAIN",
+  "VITE_FIREBASE_PROJECT_ID",
+];
+
+for (const envVar of requiredEnvVars) {
+  if (!import.meta.env[envVar]) {
+    console.error(`Missing required environment variable: ${envVar}`);
+  }
+}
+
 // Firebase configuration
 const firebaseConfig = {
-  apiKey: "AIzaSyA6ah1AD2ebv9_4Djpgy9sqDGe_lMwOXaQ",
-  authDomain: "content-idea-29f45.firebaseapp.com",
-  projectId: "content-idea-29f45",
-  storageBucket: "content-idea-29f45.firebasestorage.app",
-  messagingSenderId: "634049327430",
-  appId: "1:634049327430:web:4f2a9971160938b4e17547",
-  measurementId: "G-FRBFPSS3BW",
+  apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
+  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
+  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
+  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
+  appId: import.meta.env.VITE_FIREBASE_APP_ID,
+  measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID,
 };
 
 // Initialize Firebase
@@ -32,33 +45,35 @@ export const db = getFirestore(app);
 export const auth = getAuth(app);
 
 // Configure Auth settings for better mobile/PWA support
-auth.languageCode = 'en';
+auth.languageCode = "en";
 
 // Enable Auth persistence (helpful for PWAs)
-if (typeof window !== 'undefined') {
+if (typeof window !== "undefined") {
   // Set auth persistence to LOCAL for better PWA experience
-  import('firebase/auth').then(({ setPersistence, browserLocalPersistence }) => {
-    setPersistence(auth, browserLocalPersistence).catch((error) => {
-      console.warn('Auth persistence setup failed:', error);
-    });
-  });
+  import("firebase/auth").then(
+    ({ setPersistence, browserLocalPersistence }) => {
+      setPersistence(auth, browserLocalPersistence).catch((error) => {
+        console.warn("Auth persistence setup failed:", error);
+      });
+    }
+  );
 }
 
 // Development emulator connection (optional)
-if (process.env.NODE_ENV === 'development' && typeof window !== 'undefined') {
+if (process.env.NODE_ENV === "development" && typeof window !== "undefined") {
   const useEmulator = false; // Set to true if using Firebase emulators
-  
+
   if (useEmulator) {
     try {
       // Connect to emulators only once
       if (!auth._delegate._config.emulator) {
         connectAuthEmulator(auth, "http://localhost:9099");
       }
-      if (!db._delegate._databaseId.host.includes('localhost')) {
-        connectFirestoreEmulator(db, 'localhost', 8080);
+      if (!db._delegate._databaseId.host.includes("localhost")) {
+        connectFirestoreEmulator(db, "localhost", 8080);
       }
     } catch (error) {
-      console.warn('Emulator connection failed:', error);
+      console.warn("Emulator connection failed:", error);
     }
   }
 }
@@ -78,11 +93,11 @@ export async function pushIdeas(userId, ideas) {
         results.push({ localId: id, cloudId: idea.cloudId, action: "deleted" });
       } else if (!idea.deleted) {
         // Handle creation: add new idea to cloud
-        const docRef = await addDoc(ideasCollection, { 
-          ...ideaData, 
+        const docRef = await addDoc(ideasCollection, {
+          ...ideaData,
           userId,
           createdAt: new Date(),
-          updatedAt: new Date()
+          updatedAt: new Date(),
         });
         results.push({ localId: id, cloudId: docRef.id, action: "created" });
       }
@@ -113,11 +128,11 @@ export async function pushDrafts(userId, drafts) {
         });
       } else if (!draft.deleted) {
         // Handle creation: add new draft to cloud
-        const docRef = await addDoc(draftsCollection, { 
-          ...draftData, 
+        const docRef = await addDoc(draftsCollection, {
+          ...draftData,
           userId,
           createdAt: new Date(),
-          updatedAt: new Date()
+          updatedAt: new Date(),
         });
         results.push({ localId: id, cloudId: docRef.id, action: "created" });
       }
@@ -153,16 +168,16 @@ export async function syncDrafts(userId) {
 
 export async function updateIdeaSyncStatus(cloudId, syncStatus) {
   const ideaRef = doc(db, "ideas", cloudId);
-  await updateDoc(ideaRef, { 
+  await updateDoc(ideaRef, {
     syncStatus,
-    updatedAt: new Date()
+    updatedAt: new Date(),
   });
 }
 
 export async function updateDraftSyncStatus(cloudId, syncStatus) {
   const draftRef = doc(db, "drafts", cloudId);
-  await updateDoc(draftRef, { 
+  await updateDoc(draftRef, {
     syncStatus,
-    updatedAt: new Date()
+    updatedAt: new Date(),
   });
 }
