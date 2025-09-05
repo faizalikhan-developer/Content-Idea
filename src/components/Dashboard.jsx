@@ -89,10 +89,15 @@ function Dashboard() {
               .delete();
           } else {
             // Update sync status for created items
-            await updateIdea(localIdea.id, user.uid, {
-              syncStatus: "synced",
-              cloudId,
-            });
+            await updateIdea(
+              localIdea.id,
+              user.uid,
+              {
+                syncStatus: "synced",
+                cloudId,
+              },
+              true
+            );
             await updateIdeaSyncStatus(cloudId, "synced");
           }
         }
@@ -111,10 +116,15 @@ function Dashboard() {
               .delete();
           } else {
             // Update sync status for created/updated items
-            await updateDraft(localDraft.id, user.uid, {
-              syncStatus: "synced",
-              cloudId,
-            });
+            await updateDraft(
+              localDraft.id,
+              user.uid,
+              {
+                syncStatus: "synced",
+                cloudId,
+              },
+              true
+            );
             await updateDraftSyncStatus(cloudId, "synced");
           }
         }

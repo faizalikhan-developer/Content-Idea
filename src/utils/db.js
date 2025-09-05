@@ -201,18 +201,16 @@ export async function getIdeaById(id) {
   return idea;
 }
 
-export async function updateIdea(id, userId, updates) {
-  // Clear related cache entries
+export async function updateIdea(id, userId, updates, preserveSyncStatus = false) {
   const cacheKey = `idea_${id}`;
   const pendingSyncKey = getCacheKey(CACHE_KEYS.PENDING_SYNC, userId);
   cache.delete(cacheKey);
   cache.delete(pendingSyncKey);
 
-  const finalUpdates = updates.syncStatus
+  const finalUpdates = preserveSyncStatus
     ? updates
     : { ...updates, syncStatus: "local" };
 
-  // Use more efficient where clause with compound conditions
   return await db.ideas.where({ id: Number(id), userId }).modify(finalUpdates);
 }
 
@@ -286,14 +284,26 @@ export async function getDrafts(userId, page = 1, limit = 10) {
   return { drafts, total };
 }
 
-export async function updateDraft(id, userId, updates) {
+export async function updateDraft(
+  id,
+  userId,
+  updates,
+  preserveSyncStatus = false
+) {
   // Clear related cache entries
   const pendingSyncKey = getCacheKey(CACHE_KEYS.PENDING_SYNC, userId);
   cache.delete(pendingSyncKey);
 
-  const finalUpdates = updates.syncStatus
+  console.log("--- Update Draft Input ---");
+  console.log("updates:", updates);
+  console.log("preserveSyncStatus:", preserveSyncStatus);
+
+  const finalUpdates = preserveSyncStatus
     ? updates
     : { ...updates, syncStatus: "local" };
+
+  console.log("--- Final Updates ---");
+  console.log("finalUpdates:", finalUpdates);
 
   return await db.drafts.where({ id: Number(id), userId }).modify(finalUpdates);
 }

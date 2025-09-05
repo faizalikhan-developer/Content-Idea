@@ -1,55 +1,11 @@
-Act as a senior software engineer, expert in react, offfline-pwa, indexDB and firebase.
+You are senior frontend engineer, having expertise in `reactjs`, `indexDB` and `firebase`.
 
-Resolve the following first, start with understanding the root cause.
+Your task is to understand the following issue, analyse the provided file, find the root cause and fix it.
 
-- Below the project structure.
-
-├── eslint.config.js
-├── index.html
-├── package.json
-├── pnpm-lock.yaml
-├── public
-│   ├── __
-│   │   └── firebase
-│   │       └── init.json
-│   ├── about.txt
-│   ├── android-chrome-192x192.png
-│   ├── android-chrome-512x512.png
-│   ├── apple-touch-icon.png
-│   ├── favicon-16x16.png
-│   ├── favicon-32x32.png
-│   ├── favicon.ico
-│   └── manifest.json
-├── README.md
-├── src
-│   ├── App.jsx
-│   ├── components
-│   │   ├── ContentsTable.jsx
-│   │   ├── Dashboard.jsx
-│   │   ├── DraftDetail.jsx
-│   │   ├── EditDraft.jsx
-│   │   ├── EditIdea.jsx
-│   │   ├── IdeaDetail.jsx
-│   │   ├── InstallPrompt.jsx
-│   │   ├── Login.jsx
-│   │   ├── Navbar.jsx
-│   │   ├── NewDraft.jsx
-│   │   ├── NewIdea.jsx
-│   │   └── ViewDrafts.jsx
-│   ├── context
-│   │   └── AuthContext.jsx
-│   ├── index.css
-│   ├── main.jsx
-│   ├── services
-│   └── utils
-│       ├── db.js
-│       └── firebase.js
-├── vercel.json
-└── vite.config.js
+You don't have to edit or code an entire file, you are providing only assistance so pinpoint the issue, provide what needed to be changed, where and with what.
 
 ## Issue
 
-- Unable to login both in desktop and mobile.
-- Start with debugging and finding root cause.
-
-- What file do you want first to see?
+- User `sync` the local indexDB database with cloud (firebase) -> got two drafts -> edited one of the draft.
+- Ideally user should not be able to sync with the cloud because they haven't pushed the edited draft, but right now they are able to sync with the cloud instead of getting warning that local data haven't pushed.
+- There is no change in the cloud database and the local change the user made in the draft is also not affected
